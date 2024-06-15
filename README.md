@@ -1,21 +1,60 @@
-### Introduction
-This code is designed to detect arrows in a video feed using OpenCV and Python, and determine the direction they are pointing. Based on the detected direction, the code can be used to control a rover to move accordingly.
+# Arrow Detection Rover Control
 
-### Dependencies
-The code uses the following Python libraries:
-- **OpenCV**: For image processing tasks.
-- **NumPy**: For numerical operations, particularly useful for handling arrays and matrices.
+This repository contains Python code for detecting arrows using OpenCV, and subsequently controlling a rover to move in the direction pointed by the arrow. The project employs computer vision techniques, including edge detection, contour detection, and template matching to identify arrow directions in a video feed.
 
-### Loading Arrow Images
-The right and left arrow images are loaded in grayscale:
-```python
-right_arrow = cv2.imread("/home/yagna/Code/Rover/Images/right.jpg", cv2.IMREAD_GRAYSCALE)
-left_arrow = cv2.imread("/home/yagna/Code/Rover/Images/left.jpg", cv2.IMREAD_GRAYSCALE)
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Dependencies](#dependencies)
+3. [Setup and Installation](#setup-and-installation)
+4. [Usage](#usage)
+5. [Code Overview](#code-overview)
+    - [Edge Detection](#edge-detection)
+    - [Grayscale and Blur](#grayscale-and-blur)
+    - [Contour Detection](#contour-detection)
+    - [Arrow Tip Identification](#arrow-tip-identification)
+    - [Direction Determination](#direction-determination)
+    - [Template Matching](#template-matching)
+    - [Frame Processing](#frame-processing)
+    - [Main Loop](#main-loop)
+6. [Repository Name and Tags](#repository-name-and-tags)
+7. [Bibliography](#bibliography)
+
+## Introduction
+This project demonstrates how to use OpenCV for real-time arrow detection in a video feed and control a rover based on the detected arrow direction. The code processes each frame to detect arrows pointing left or right, and commands the rover accordingly.
+
+## Dependencies
+- Python 3.x
+- OpenCV
+- NumPy
+
+## Setup and Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/arrow-detection-rover-control.git
+   ```
+2. Install the required dependencies:
+   ```bash
+   pip install opencv-python-headless numpy
+   ```
+
+3. Place the right and left arrow images in the specified directory or update the paths in the code:
+   ```python
+   right_arrow = cv2.imread("/path/to/right.jpg", cv2.IMREAD_GRAYSCALE)
+   left_arrow = cv2.imread("/path/to/left.jpg", cv2.IMREAD_GRAYSCALE)
+   ```
+
+## Usage
+Run the main script to start the video feed and arrow detection:
+```bash
+python main.py
 ```
-These images will be used later for template matching.
+Press 'q' to quit the video feed.
+
+## Code Overview
+The main components of the code are as follows:
 
 ### Edge Detection
-The `edge_detection` function applies the Canny edge detection algorithm and then performs morphological closing to strengthen the edges:
+The `edge_detection` function applies the Canny edge detection algorithm and morphological transformations to the input image to highlight edges.
 ```python
 def edge_detection(image):
     edges = cv2.Canny(image, 50, 150)
@@ -23,32 +62,27 @@ def edge_detection(image):
     edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
     return edges
 ```
-- **Canny Edge Detection**: Detects edges in the image.
-- **Morphological Closing**: Fills small gaps in the detected edges.
 
 ### Grayscale and Blur
-The `to_grayscale_and_blur` function converts an image to grayscale and then applies Gaussian blur:
+The `to_grayscale_and_blur` function converts the input image to grayscale and applies Gaussian blur to reduce noise.
 ```python
 def to_grayscale_and_blur(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (7, 7), 0)
     return blurred
 ```
-- **Grayscale Conversion**: Simplifies the image by removing color information.
-- **Gaussian Blur**: Reduces noise and detail in the image.
 
 ### Contour Detection
-The `detect_contours` function processes the image to find contours:
+The `detect_contours` function processes the image to detect contours.
 ```python
 def detect_contours(image):
     processed = edge_detection(to_grayscale_and_blur(image))
     contours, _ = cv2.findContours(processed, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 ```
-- **Contour Detection**: Identifies the outlines of objects in the processed image.
 
-### Identifying Arrow Tip
-The `identify_arrow_tip` function identifies the tip of the arrow from the contour points and convex hull indices:
+### Arrow Tip Identification
+The `identify_arrow_tip` function identifies the tip of the arrow from the contour points and convex hull indices.
 ```python
 def identify_arrow_tip(points, hull_indices):
     remaining_indices = np.setdiff1d(np.arange(len(points)), hull_indices)
@@ -58,11 +92,9 @@ def identify_arrow_tip(points, hull_indices):
             return tuple(points[j])
     return None
 ```
-- **Convex Hull**: The smallest convex shape that can enclose all the points.
-- **Arrow Tip Identification**: Finds the point that is likely the tip of the arrow based on the geometry of the contour.
 
-### Determining Arrow Direction
-The `determine_direction` function determines the direction of the arrow based on the identified tip:
+### Direction Determination
+The `determine_direction` function determines the direction of the arrow based on the identified tip.
 ```python
 def determine_direction(approx, tip):
     left_points = sum(1 for pt in approx if pt[0][0] > tip[0])
@@ -74,10 +106,9 @@ def determine_direction(approx, tip):
         return "Right"
     return "None"
 ```
-- **Direction Determination**: Compares the number of points on the left and right side of the tip to determine the direction.
 
 ### Template Matching
-The `template_matching` function performs template matching to find arrows in the image:
+The `template_matching` function performs template matching to identify arrows in the frame.
 ```python
 def template_matching(image, template):
     best_match = {"value": -1, "location": -1, "scale": -1}
@@ -89,10 +120,9 @@ def template_matching(image, template):
             best_match.update({"value": max_val, "location": max_loc, "scale": scale})
     return best_match
 ```
-- **Template Matching**: Searches for the best match of the template in the image at various scales.
 
 ### Frame Processing
-The `process_frame` function processes each frame to detect contours and identify arrow directions:
+The `process_frame` function processes each frame to detect contours and identify arrow directions.
 ```python
 def process_frame(frame):
     contours = detect_contours(frame)
@@ -111,12 +141,9 @@ def process_frame(frame):
 
     return frame
 ```
-- **Contour Approximation**: Simplifies contours to reduce the number of points.
-- **Hull and Tip Identification**: Checks the shape to identify potential arrows and their tips.
-- **Drawing and Annotation**: Draws contours and marks the arrow tip on the frame.
 
-### Main Function
-The `main` function captures video frames from the webcam and processes each frame to detect and annotate arrows:
+### Main Loop
+The `main` function captures video frames from the webcam and processes each frame to detect and annotate arrows.
 ```python
 def main():
     cap = cv2.VideoCapture(0)
@@ -137,11 +164,22 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 ```
-- **Video Capture**: Uses the webcam to capture frames.
-- **Frame Processing**: Each frame is processed to detect arrows.
-- **Template Matching and Annotation**: Detects arrows using template matching and annotates them on the frame.
-- **Displaying the Video**: Shows the processed video feed with annotations.
-- **Exit Condition**: Press 'q' to exit the video feed.
 
-### Conclusion
-This code provides a comprehensive solution for detecting arrow directions using computer vision techniques. By combining edge detection, contour analysis, and template matching, the system can accurately identify and annotate arrows in real-time video feeds.
+## Repository Name and Tags
+**Repository Name:** arrow-detection-rover-control
+
+**Tags:** 
+- OpenCV
+- Computer Vision
+- Python
+- Arrow Detection
+- Robotics
+- Template Matching
+- Edge Detection
+- Contour Detection
+
+## Bibliography
+- OpenCV documentation: https://docs.opencv.org/
+- NumPy documentation: https://numpy.org/doc/stable/
+
+Feel free to modify the code to suit your specific requirements and extend the functionality as needed. For any issues or contributions, please open a new issue or pull request on GitHub.
